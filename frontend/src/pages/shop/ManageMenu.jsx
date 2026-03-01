@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { BookOpen, Plus, Check, X, Edit, Trash2, Sliders } from 'lucide-react';
+import { apiUrl } from '../../utils/api';
 
 const ManageMenu = () => {
   const [showAddForm, setShowAddForm] = useState(false);
@@ -26,7 +27,7 @@ const ManageMenu = () => {
   const fetchMenuItems = async () => {
     try {
       setLoading(true);
-      const response = await fetch('http://localhost:5000/api/shop/products', {
+      const response = await fetch(apiUrl('/api/shop/products'), {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
@@ -60,8 +61,8 @@ const ManageMenu = () => {
 
     try {
       const url = editingItem 
-        ? `http://localhost:5000/api/shop/${editingItem._id}`
-        : 'http://localhost:5000/api/shop/';
+        ? apiUrl(`/api/shop/${editingItem._id}`)
+        : apiUrl('/api/shop/');
       
       const method = editingItem ? 'PUT' : 'POST';
 
@@ -131,7 +132,7 @@ const ManageMenu = () => {
 
   const toggleAvailability = async (item) => {
     try {
-      const response = await fetch(`http://localhost:5000/api/shop/${item._id}/toggle`, {
+      const response = await fetch(apiUrl(`/api/shop/${item._id}/toggle`), {
         method: 'PATCH',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
@@ -160,7 +161,7 @@ const ManageMenu = () => {
     }
 
     try {
-      const response = await fetch(`http://localhost:5000/api/shop/${id}`, {
+      const response = await fetch(apiUrl(`/api/shop/${id}`), {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`

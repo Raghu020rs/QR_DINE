@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { apiUrl } from '../../utils/api';
 
 const ManageShops = () => {
   const navigate = useNavigate();
@@ -23,7 +24,7 @@ const ManageShops = () => {
         return;
       }
 
-      const response = await fetch('http://localhost:5000/api/master/shops', {
+      const response = await fetch(apiUrl('/api/master/shops'), {
         headers: { 
           'Authorization': `Bearer ${token}` 
         }
@@ -54,7 +55,7 @@ const ManageShops = () => {
 
   const handleStatusToggle = async (shopId, currentStatus) => {
     try {
-      const response = await fetch(`http://localhost:5000/api/master/shop/${shopId}/toggle-status`, {
+      const response = await fetch(apiUrl(`/api/master/shop/${shopId}/toggle-status`), {
         method: 'PATCH',
         headers: { 
           'Authorization': `Bearer ${localStorage.getItem('token')}` 

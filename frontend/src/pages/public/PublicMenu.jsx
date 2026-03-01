@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { BookOpen, ShoppingCart, X, Loader2, AlertCircle, Minus, Plus, Trash2 } from 'lucide-react';
+import { apiUrl } from '../../utils/api';
 
 const PublicMenu = () => {
   const { shopId } = useParams();
@@ -19,7 +20,7 @@ const PublicMenu = () => {
   const fetchMenu = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`http://localhost:5000/api/shop/menu/${shopId}`);
+      const response = await fetch(apiUrl(`/api/shop/menu/${shopId}`));
       
       if (!response.ok) {
         throw new Error('Failed to fetch menu');

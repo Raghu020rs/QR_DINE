@@ -55,11 +55,25 @@ export const createQrOrder = async (req, res) => {
       status: "pending",
     });
 
+    // Emit socket event to the shop's room
+    const io = req.app.get("io");
+    if (io) {
+      io.to(shopId.toString()).emit("newOrder", {
+        msg: "New order received!",
+        orderNumber: order.orderNumber,
+        tableNo: order.tableNo,
+        totalAmount: order.totalAmount
+      });
+    }
+
     res.status(201).json({
       msg: "Order Created Successfully",
       orderId: order._id,
       orderNumber: order.orderNumber,
       totalAmount: order.totalAmount,
+      tableNo: order.tableNo,
+      customerPhone: order.customerPhone,
+      items: order.items,
     });
 
   } catch (error) {

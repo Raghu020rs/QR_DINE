@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { RefreshCw, FileText, DollarSign, Clock, Check, X } from 'lucide-react';
+import { RefreshCw, FileText, ChevronDown, Check } from 'lucide-react';
+import { io } from 'socket.io-client';
 
 const ShopDashboard = () => {
   const shopId = localStorage.getItem('shopId');
@@ -13,16 +14,42 @@ const ShopDashboard = () => {
     pendingOrders: 0,
   });
 
-  const [activeTab, setActiveTab] = useState('orders');
   const [orders, setOrders] = useState([]);
   const [menuItems, setMenuItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [activeCategory, setActiveCategory] = useState('All');
 
-  // Fetch dashboard data on mount
   useEffect(() => {
     fetchDashboardData();
+
+    // Socket.io Integration
+    const socket = io('http://localhost:5000');
+    
+    socket.on('connect', () => {
+      console.log('Connected to WebSocket server');
+      if (shopId) {
+        socket.emit('joinShop', shopId);
+      }
+    });
+
+    socket.on('newOrder', (data) => {
+      // Play ding sound
+      const audio = new Audio('/ding.ogg');
+      audio.play().catch(e => console.log('Audio play failed:', e));
+      
+      // Show short notification
+      setSuccess(`New Order Alert! Table ${data.tableNo}`);
+      setTimeout(() => setSuccess(''), 5000);
+
+      // Refresh data
+      fetchDashboardData();
+    });
+
+    return () => {
+      socket.disconnect();
+    };
   }, []);
 
   const fetchDashboardData = async () => {
@@ -30,42 +57,29 @@ const ShopDashboard = () => {
       setLoading(true);
       const token = localStorage.getItem('token');
 
-      // Fetch stats
       const statsResponse = await fetch('http://localhost:5000/api/order/dashboard-stats', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
+        headers: { 'Authorization': `Bearer ${token}` }
       });
-
       if (statsResponse.ok) {
         const statsData = await statsResponse.json();
         setStats(statsData);
       }
 
-      // Fetch orders
       const ordersResponse = await fetch('http://localhost:5000/api/order/shop-orders', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
+        headers: { 'Authorization': `Bearer ${token}` }
       });
-
       if (ordersResponse.ok) {
         const ordersData = await ordersResponse.json();
         setOrders(ordersData);
       }
 
-      // Fetch menu items
       const menuResponse = await fetch('http://localhost:5000/api/shop/products', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
+        headers: { 'Authorization': `Bearer ${token}` }
       });
-
       if (menuResponse.ok) {
         const menuData = await menuResponse.json();
-        setMenuItems(menuData.slice(0, 6)); // Show only first 6 items
+        setMenuItems(menuData);
       }
-
     } catch (err) {
       console.error('Error fetching dashboard data:', err);
       setError('Failed to load dashboard data');
@@ -76,12 +90,12 @@ const ShopDashboard = () => {
 
   const getStatusColor = (status) => {
     const colors = {
-      preparing: 'bg-orange-100 text-orange-700 border-orange-200',
-      served: 'bg-blue-100 text-blue-700 border-blue-200',
-      pending: 'bg-yellow-100 text-yellow-700 border-yellow-200',
-      cancelled: 'bg-red-100 text-red-700 border-red-200',
+      preparing: 'bg-[#f8b400] text-white',
+      served: 'bg-[#1e293b] text-white',
+      pending: 'bg-orange-100 text-orange-800',
+      cancelled: 'bg-red-100 text-red-800',
     };
-    return colors[status] || 'bg-gray-100 text-gray-700 border-gray-200';
+    return colors[status] || 'bg-gray-100 text-gray-700';
   };
 
   const updateOrderStatus = async (orderId, newStatus) => {
@@ -96,19 +110,11 @@ const ShopDashboard = () => {
       });
 
       const data = await response.json();
+      if (!response.ok) throw new Error(data.msg || 'Failed to update order status');
 
-      if (!response.ok) {
-        throw new Error(data.msg || 'Failed to update order status');
-      }
-
-      setSuccess('Order status updated successfully!');
-      fetchDashboardData(); // Refresh data
-
-      // Clear success message after 3 seconds
-      setTimeout(() => setSuccess(''), 3000);
+      fetchDashboardData(); 
     } catch (err) {
-      setError(err.message);
-      setTimeout(() => setError(''), 3000);
+      console.error(err);
     }
   };
 
@@ -120,248 +126,222 @@ const ShopDashboard = () => {
     });
   };
 
-  const formatDate = (date) => {
-    return new Date(date).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric'
-    });
-  };
+  const filteredMenu = activeCategory === 'All' 
+    ? menuItems 
+    : menuItems.filter(item => item.category.toLowerCase() === activeCategory.toLowerCase());
 
   return (
-    <div className="space-y-6 p-6 bg-gray-50 min-h-screen">
-      {/* Header */}
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-          <p className="text-gray-600 mt-1">Welcome back, {shopName}!</p>
-        </div>
-        <button 
-          onClick={fetchDashboardData}
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
-        >
-          <RefreshCw className="w-5 h-5" />
-          Refresh
-        </button>
-      </div>
-
-      {/* Success/Error Messages */}
+    <div className="bg-gray-50 min-h-screen p-6 font-sans">
+      {/* Toast Notification for New Orders or Success Messages */}
       {success && (
-        <div className="bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-lg">
-          <p className="font-medium">{success}</p>
+        <div className="fixed top-4 right-4 z-50 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg flex items-center gap-3 animate-in slide-in-from-right-4">
+          <Check className="w-5 h-5" />
+          <span className="font-semibold">{success}</span>
         </div>
       )}
 
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg">
-          <p className="font-medium">{error}</p>
+        <div className="fixed top-4 right-4 z-50 bg-red-500 text-white px-6 py-3 rounded-lg shadow-lg flex items-center gap-3 animate-in slide-in-from-right-4">
+          <span className="font-semibold">{error}</span>
         </div>
       )}
 
+      <div className="flex justify-between items-center mb-6">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
+            ��� Shop Admin Dashboard
+          </h1>
+        </div>
+        <div className="flex items-center gap-4">
+          <div className="text-right">
+            <p className="text-sm font-semibold text-gray-800">Hello, {shopName}</p>
+            <p className="text-xs text-gray-500">admin@shop.com</p>
+          </div>
+          <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center text-xl shadow-sm">
+            ���‍���
+          </div>
+        </div>
+      </div>
+
       {loading ? (
         <div className="flex items-center justify-center h-64">
-          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-[#1e293b]"></div>
         </div>
       ) : (
-        <>
-          {/* Stats Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
-              <div className="flex justify-between items-start">
-                <div>
-                  <p className="text-gray-600 text-sm mb-1">Revenue Today</p>
-                  <h3 className="text-3xl font-bold text-gray-900">₹{stats.todayRevenue.toLocaleString()}</h3>
-                  <p className="text-gray-500 text-sm mt-2">{formatDate(new Date())}</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
-              <div>
-                <p className="text-gray-600 text-sm mb-1">Today's Orders</p>
-                <h3 className="text-3xl font-bold text-gray-900">{stats.todayOrders}</h3>
-                <p className="text-blue-600 text-sm mt-2">{stats.pendingOrders} orders pending</p>
-              </div>
-            </div>
-
-            <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
-              <div>
-                <p className="text-gray-600 text-sm mb-1">Weekly Revenue</p>
-                <h3 className="text-3xl font-bold text-gray-900">₹{stats.weeklyRevenue.toLocaleString()}</h3>
-                <p className="text-gray-500 text-sm mt-2">Last 7 days</p>
-              </div>
-            </div>
-          </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Orders Section */}
-        <div className="lg:col-span-2 bg-white rounded-xl shadow-sm border border-gray-200">
-          <div className="p-6 border-b border-gray-200">
-            <div className="flex justify-between items-center">
-              <h2 className="text-xl font-bold text-gray-900">Recent Orders</h2>
-              <div className="flex gap-2">
-                <button className="px-3 py-1 text-sm border border-gray-300 rounded-lg hover:bg-gray-50">
-                  Filter
-                </button>
-                <button className="px-3 py-1 text-sm border border-gray-300 rounded-lg hover:bg-gray-50">
-                  Export
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-50 border-b border-gray-200">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Order ID</th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Customer</th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Order Time</th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Status</th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Total</th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Action</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200">
-                {orders.length === 0 ? (
-                  <tr>
-                    <td colSpan="6" className="px-6 py-12 text-center">
-                      <FileText className="mx-auto h-12 w-12 text-gray-400" />
-                      <p className="mt-2 text-sm text-gray-500">No orders yet</p>
-                    </td>
-                  </tr>
-                ) : (
-                  orders.map((order) => (
-                    <tr key={order._id} className="hover:bg-gray-50 transition-colors">
-                      <td className="px-6 py-4 text-sm font-medium text-gray-900">
-                        {order.orderNumber || `#${order._id.slice(-6)}`}
-                      </td>
-                      <td className="px-6 py-4">
-                        <div>
-                          <div className="text-sm font-medium text-gray-900">
-                            {order.customerPhone}
-                          </div>
-                          {order.tableNo && (
-                            <div className="text-sm text-gray-500">Table {order.tableNo}</div>
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 text-sm text-gray-600">{formatTime(order.createdAt)}</td>
-                      <td className="px-6 py-4">
-                        <span className={`px-3 py-1 text-xs font-semibold rounded-full border capitalize ${getStatusColor(order.status)}`}>
-                          {order.status}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-sm font-semibold text-gray-900">₹{order.totalAmount}</td>
-                      <td className="px-6 py-4">
-                        <select 
-                          value={order.status}
-                          onChange={(e) => updateOrderStatus(order._id, e.target.value)}
-                          className="text-xs border border-gray-300 rounded px-2 py-1 capitalize"
-                        >
-                          <option value="pending">Pending</option>
-                          <option value="preparing">Preparing</option>
-                          <option value="served">Served</option>
-                          <option value="cancelled">Cancelled</option>
-                        </select>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-
-          <div className="p-4 border-t border-gray-200 flex justify-between items-center">
-            <p className="text-sm text-gray-600">Showing {orders.length} orders</p>
-          </div>
-        </div>
-
-        {/* Right Sidebar */}
-        <div className="space-y-6">
-          {/* Menu Items */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <h3 className="text-lg font-bold text-gray-900 mb-4">Quick Menu</h3>
-            <div className="space-y-3 max-h-96 overflow-y-auto">
-              {menuItems.length === 0 ? (
-                <div className="text-center py-8">
-                  <p className="text-sm text-gray-500">No menu items yet</p>
-                  <p className="text-xs text-gray-400 mt-1">Add items from Menu page</p>
-                </div>
-              ) : (
-                menuItems.map((item) => (
-                  <div key={item._id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <h4 className="text-sm font-semibold text-gray-900">{item.name}</h4>
-                        {item.isVeg && <span className="text-xs text-green-600">🌱</span>}
-                      </div>
-                      <p className="text-xs text-gray-500 capitalize">{item.category}</p>
-                      <p className="text-sm font-bold text-gray-900 mt-1">₹{item.price}</p>
-                    </div>
-                    <span className={`px-2 py-1 text-xs rounded ${
-                      item.isAvailable 
-                        ? 'bg-green-100 text-green-700' 
-                        : 'bg-red-100 text-red-700'
-                    }`}>
-                      {item.isAvailable ? 'Available' : 'Out'}
-                    </span>
-                  </div>
-                ))
-              )}
-            </div>
-            <button 
-              onClick={() => window.location.href = '/shop/menu'}
-              className="w-full mt-4 px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors"
-            >
-              View All Menu
-            </button>
-          </div>
-
-          {/* Quick Stats */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <h3 className="text-lg font-bold text-gray-900 mb-4">Quick Stats</h3>
-            <div className="space-y-3">
-              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                    <FileText className="w-6 h-6 text-blue-600" />
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-500">Total Orders</p>
-                    <p className="text-lg font-bold text-gray-900">{stats.totalOrders}</p>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          
+          {/* LEFT COLUMN */}
+          <div className="lg:col-span-2 space-y-6">
+            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-xl font-bold text-gray-800">Revenue Today</h3>
+                <div className="flex items-center gap-4">
+                  <span className="text-2xl font-bold text-gray-900">₹{stats.todayRevenue.toLocaleString()}</span>
+                  <div className="bg-[#59b28b] bg-opacity-20 text-[#2b7153] px-2 py-1 rounded text-sm font-semibold flex items-center gap-1">
+                    72 <ChevronDown className="w-4 h-4" />
                   </div>
                 </div>
               </div>
               
-              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-                    <DollarSign className="w-6 h-6 text-green-600" />
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-500">Menu Items</p>
-                    <p className="text-lg font-bold text-gray-900">{menuItems.length}</p>
-                  </div>
-                </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="border-b border-gray-200 text-sm text-gray-500">
+                      <th className="pb-3 font-semibold">Order ID</th>
+                      <th className="pb-3 font-semibold">Customer</th>
+                      <th className="pb-3 font-semibold">Order Time</th>
+                      <th className="pb-3 font-semibold">Status</th>
+                      <th className="pb-3 font-semibold">Total</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {orders.slice(0, 5).map((order) => (
+                      <tr key={order._id} className="border-b border-gray-50 hover:bg-gray-50/50">
+                        <td className="py-3 text-sm font-bold text-gray-700">
+                          #{order.orderNumber || order._id.slice(-4).toUpperCase()}
+                        </td>
+                        <td className="py-3 text-sm text-gray-800">
+                          {order.tableNo ? `Table ${order.tableNo}` : order.customerPhone}
+                        </td>
+                        <td className="py-3 text-sm text-gray-500">{formatTime(order.createdAt)}</td>
+                        <td className="py-3">
+                           <div className="flex items-center gap-2">
+                             <select 
+                               value={order.status}
+                               onChange={(e) => updateOrderStatus(order._id, e.target.value)}
+                               className={`text-xs font-semibold px-3 py-1.5 rounded outline-none cursor-pointer appearance-none ${getStatusColor(order.status)}`}
+                             >
+                                <option value="pending" className="text-black bg-white">Pending</option>
+                                <option value="preparing" className="text-black bg-white">Preparing</option>
+                                <option value="served" className="text-black bg-white">Ready</option>
+                                <option value="cancelled" className="text-black bg-white">Cancelled</option>
+                             </select>
+                           </div>
+                        </td>
+                        <td className="py-3 text-sm font-bold text-[#1e293b]">
+                          <div className="flex items-center gap-4">
+                            ₹{order.totalAmount}
+                            {order.status === 'served' && (
+                              <button className="bg-[#59b28b] text-white px-3 py-1 rounded text-xs flex items-center gap-1 font-semibold hover:bg-[#439672]">
+                                <Check className="w-3 h-3"/> Eat
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                    {orders.length === 0 && (
+                      <tr>
+                        <td colSpan="5" className="py-8 text-center text-gray-500">No orders for today</td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Mock Chart Area */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+               <div className="flex justify-between items-center mb-4">
+                  <h3 className="text-lg font-bold text-gray-800">QR Payment</h3>
+                  <ChevronDown className="w-5 h-5 text-gray-400" />
+               </div>
+               <h2 className="text-3xl font-bold text-gray-800 mb-6">₹{stats.weeklyRevenue.toLocaleString()}</h2>
+               
+               {/* FAKE CHART UI */}
+               <div className="h-32 border-b-2 border-l-2 border-gray-100 relative flex items-end justify-between px-2 mb-4">
+                 <div className="w-2 h-16 bg-blue-100 rounded-t"></div>
+                 <div className="w-2 h-20 bg-blue-100 rounded-t"></div>
+                 <div className="w-2 h-24 bg-blue-100 rounded-t"></div>
+                 <div className="w-2 h-12 bg-blue-100 rounded-t"></div>
+                 <div className="w-2 h-28 bg-[#59b28b] rounded-t relative">
+                   <div className="absolute -top-8 -left-6 bg-[#59b28b] text-white text-xs px-2 py-1 rounded">₹{stats.todayRevenue}</div>
+                 </div>
+                 <div className="w-2 h-16 bg-blue-100 rounded-t"></div>
+                 <div className="w-2 h-14 bg-blue-100 rounded-t"></div>
+               </div>
+               <div className="flex justify-between text-xs text-gray-400 font-semibold px-2">
+                 <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>
+               </div>
+               
+               <div className="flex justify-center gap-4 mt-6 opacity-60">
+                 <div className="font-bold italic text-blue-800 flex items-center">Razorpay</div>
+                 <div className="font-bold text-blue-500 flex items-center">Google Pay</div>
+                 <div className="font-bold text-purple-600 flex items-center">PhonePe</div>
+               </div>
+            </div>
+          </div>
+
+          {/* RIGHT COLUMN */}
+          <div className="space-y-6">
+            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-bold text-gray-800">Menu</h3>
+              </div>
+              <div className="flex gap-2 text-sm font-semibold mb-6 overflow-x-auto no-scrollbar pb-2">
+                {['All', 'Main Course', 'Pizza', 'Drinks'].map(cat => (
+                  <button 
+                    key={cat}
+                    onClick={() => setActiveCategory(cat)}
+                    className={`px-3 py-1.5 rounded-full whitespace-nowrap ${
+                      activeCategory === cat ? 'bg-[#3b4b5e] text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    }`}
+                  >
+                    {cat}
+                  </button>
+                ))}
               </div>
 
-              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-yellow-100 rounded-lg flex items-center justify-center">
-                    <Clock className="w-6 h-6 text-yellow-600" />
+              <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2 no-scrollbar">
+                {filteredMenu.slice(0, 5).map(item => (
+                  <div key={item._id} className="flex gap-3 items-center">
+                    <div className="w-16 h-16 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0">
+                      {item.image ? (
+                        <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full bg-gray-200 flex items-center justify-center text-xs text-gray-400">IMG</div>
+                      )}
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="text-sm font-bold text-gray-800">{item.name}</h4>
+                      <p className="text-xs text-gray-500 line-clamp-1">{shopName}</p>
+                    </div>
+                    <div className="text-right flex flex-col items-end gap-1">
+                      <span className="text-sm font-bold text-gray-800">₹{item.price}</span>
+                      <button className="bg-[#59b28b] hover:bg-[#439672] text-white text-xs px-4 py-1 rounded font-semibold transition-colors">
+                        Add
+                      </button>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-xs text-gray-500">Pending</p>
-                    <p className="text-lg font-bold text-gray-900">{stats.pendingOrders}</p>
+                ))}
+                {filteredMenu.length === 0 && (
+                  <div className="text-center text-sm text-gray-500 py-4">No items found</div>
+                )}
+              </div>
+            </div>
+
+            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+              <h3 className="text-lg font-bold text-gray-800 mb-4">Recent Activity</h3>
+              <div className="space-y-4">
+                <div className="flex gap-3 items-start">
+                  <div className="w-6 h-6 rounded bg-blue-100 text-blue-600 flex items-center justify-center text-xs font-bold">A</div>
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-gray-800">Updated info for {shopName}</p>
                   </div>
+                  <span className="text-xs text-gray-400">2 hrs</span>
+                </div>
+                <div className="flex gap-3 items-start">
+                  <div className="w-6 h-6 rounded bg-green-100 text-green-600 flex items-center justify-center text-xs font-bold">A</div>
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-gray-800">Added new shop {shopName}</p>
+                  </div>
+                  <span className="text-xs text-gray-400">1 day</span>
                 </div>
               </div>
             </div>
+
           </div>
         </div>
-      </div>
-      </>
       )}
     </div>
   );

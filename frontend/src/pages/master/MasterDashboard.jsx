@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { apiUrl } from '../../utils/api';
 
 const MasterDashboard = () => {
   const navigate = useNavigate();
@@ -19,7 +20,7 @@ const MasterDashboard = () => {
 
   const fetchStats = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/master/dashboard-stats', {
+      const response = await fetch(apiUrl('/api/master/dashboard-stats'), {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
@@ -38,7 +39,7 @@ const MasterDashboard = () => {
 
   const fetchRecentShops = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/master/shops', {
+      const response = await fetch(apiUrl('/api/master/shops'), {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }

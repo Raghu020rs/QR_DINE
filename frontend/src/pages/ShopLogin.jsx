@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Building2 } from 'lucide-react';
+import { apiUrl } from '../utils/api';
 
 const ShopLogin = () => {
   const navigate = useNavigate();
@@ -24,7 +25,7 @@ const ShopLogin = () => {
     setLoading(true);
 
     try {
-      const response = await fetch('http://localhost:5000/api/auth/shop/login', {
+      const response = await fetch(apiUrl('/api/auth/shop/login'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

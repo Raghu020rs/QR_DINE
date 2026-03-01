@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { ShoppingCart, FileText, ArrowLeft, Check, Loader2, Info } from 'lucide-react';
+import { apiUrl } from '../../utils/api';
 
 const PublicOrder = () => {
   const location = useLocation();
@@ -95,7 +96,7 @@ const PublicOrder = () => {
         }))
       };
 
-      const response = await fetch('http://localhost:5000/api/order/qr', {
+      const response = await fetch(apiUrl('/api/order/qr'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

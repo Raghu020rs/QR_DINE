@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { apiUrl } from '../../utils/api';
 
 const ManageShopAdmins = () => {
   const [admins, setAdmins] = useState([]);
@@ -17,12 +18,12 @@ const ManageShopAdmins = () => {
       const token = localStorage.getItem('token');
       
       // Fetch shops
-      const shopsResponse = await fetch('http://localhost:5000/api/master/shops', {
+      const shopsResponse = await fetch(apiUrl('/api/master/shops'), {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       
       // Fetch admins
-      const adminsResponse = await fetch('http://localhost:5000/api/master/shop-admins', {
+      const adminsResponse = await fetch(apiUrl('/api/master/shop-admins'), {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       
@@ -42,7 +43,7 @@ const ManageShopAdmins = () => {
 
   const handleToggleStatus = async (adminId, currentStatus) => {
     try {
-      const response = await fetch(`http://localhost:5000/api/master/shop-admin/${adminId}/toggle-status`, {
+      const response = await fetch(apiUrl(`/api/master/shop-admin/${adminId}/toggle-status`), {
         method: 'PATCH',
         headers: { 
           'Authorization': `Bearer ${localStorage.getItem('token')}` 

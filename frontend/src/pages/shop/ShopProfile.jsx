@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Building2, Loader2, Check } from 'lucide-react';
+import { apiUrl } from '../../utils/api';
 
 const ShopProfile = () => {
   const [loading, setLoading] = useState(false);
@@ -24,7 +25,7 @@ const ShopProfile = () => {
   const fetchShopProfile = async () => {
     try {
       setFetchingData(true);
-      const response = await fetch('http://localhost:5000/api/shop/profile', {
+      const response = await fetch(apiUrl('/api/shop/profile'), {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
@@ -67,7 +68,7 @@ const ShopProfile = () => {
     setLoading(true);
 
     try {
-      const response = await fetch('http://localhost:5000/api/shop/profile', {
+      const response = await fetch(apiUrl('/api/shop/profile'), {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

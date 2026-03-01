@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { RefreshCw, FileText, DollarSign, Clock, Check, X } from 'lucide-react';
+import { apiUrl } from '../../utils/api';
 
 const ShopDashboard = () => {
   const shopId = localStorage.getItem('shopId');
@@ -31,7 +32,7 @@ const ShopDashboard = () => {
       const token = localStorage.getItem('token');
 
       // Fetch stats
-      const statsResponse = await fetch('http://localhost:5000/api/order/dashboard-stats', {
+      const statsResponse = await fetch(apiUrl('/api/order/dashboard-stats'), {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -43,7 +44,7 @@ const ShopDashboard = () => {
       }
 
       // Fetch orders
-      const ordersResponse = await fetch('http://localhost:5000/api/order/shop-orders', {
+      const ordersResponse = await fetch(apiUrl('/api/order/shop-orders'), {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -55,7 +56,7 @@ const ShopDashboard = () => {
       }
 
       // Fetch menu items
-      const menuResponse = await fetch('http://localhost:5000/api/shop/products', {
+      const menuResponse = await fetch(apiUrl('/api/shop/products'), {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -86,7 +87,7 @@ const ShopDashboard = () => {
 
   const updateOrderStatus = async (orderId, newStatus) => {
     try {
-      const response = await fetch(`http://localhost:5000/api/order/${orderId}/status`, {
+      const response = await fetch(apiUrl(`/api/order/${orderId}/status`), {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',

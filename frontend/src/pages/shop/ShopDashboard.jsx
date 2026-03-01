@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { RefreshCw, FileText, ChevronDown, Check } from 'lucide-react';
+import { RefreshCw, FileText, DollarSign, Clock, Check, X } from 'lucide-react';
+import { apiUrl } from '../../utils/api';
 import { io } from 'socket.io-client';
 
 const ShopDashboard = () => {
@@ -57,24 +58,33 @@ const ShopDashboard = () => {
       setLoading(true);
       const token = localStorage.getItem('token');
 
-      const statsResponse = await fetch('http://localhost:5000/api/order/dashboard-stats', {
-        headers: { 'Authorization': `Bearer ${token}` }
+      // Fetch stats
+      const statsResponse = await fetch(apiUrl('/api/order/dashboard-stats'), {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
       });
       if (statsResponse.ok) {
         const statsData = await statsResponse.json();
         setStats(statsData);
       }
 
-      const ordersResponse = await fetch('http://localhost:5000/api/order/shop-orders', {
-        headers: { 'Authorization': `Bearer ${token}` }
+      // Fetch orders
+      const ordersResponse = await fetch(apiUrl('/api/order/shop-orders'), {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
       });
       if (ordersResponse.ok) {
         const ordersData = await ordersResponse.json();
         setOrders(ordersData);
       }
 
-      const menuResponse = await fetch('http://localhost:5000/api/shop/products', {
-        headers: { 'Authorization': `Bearer ${token}` }
+      // Fetch menu items
+      const menuResponse = await fetch(apiUrl('/api/shop/products'), {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
       });
       if (menuResponse.ok) {
         const menuData = await menuResponse.json();
@@ -100,7 +110,7 @@ const ShopDashboard = () => {
 
   const updateOrderStatus = async (orderId, newStatus) => {
     try {
-      const response = await fetch(`http://localhost:5000/api/order/${orderId}/status`, {
+      const response = await fetch(apiUrl(`/api/order/${orderId}/status`), {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Users, UserPlus, Loader2 } from 'lucide-react';
+import { apiUrl } from '../../utils/api';
 
 const CreateMasterAdmin = () => {
   const navigate = useNavigate();
@@ -40,7 +41,7 @@ const CreateMasterAdmin = () => {
     setLoading(true);
 
     try {
-      const response = await fetch('http://localhost:5000/api/master/create-admin', {
+      const response = await fetch(apiUrl('/api/master/create-admin'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Building2, Plus, Loader2 } from 'lucide-react';
+import { apiUrl } from '../../utils/api';
 
 const CreateShop = () => {
   const navigate = useNavigate();
@@ -30,7 +31,7 @@ const CreateShop = () => {
     setLoading(true);
 
     try {
-      const response = await fetch('http://localhost:5000/api/master/create-shop', {
+      const response = await fetch(apiUrl('/api/master/create-shop'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

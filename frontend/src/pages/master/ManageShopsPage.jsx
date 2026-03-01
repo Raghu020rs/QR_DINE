@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Building2, Plus, Loader2 } from 'lucide-react';
+import { apiUrl } from '../../utils/api';
 
 const ManageShopsPage = () => {
   const navigate = useNavigate();
@@ -20,7 +21,7 @@ const ManageShopsPage = () => {
   const fetchShops = async () => {
     try {
       setLoading(true);
-      const response = await fetch('http://localhost:5000/api/master/shops', {
+      const response = await fetch(apiUrl('/api/master/shops'), {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
@@ -39,7 +40,7 @@ const ManageShopsPage = () => {
 
   const fetchStats = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/master/dashboard-stats', {
+      const response = await fetch(apiUrl('/api/master/dashboard-stats'), {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
@@ -60,7 +61,7 @@ const ManageShopsPage = () => {
 
   const toggleShopStatus = async (shopId) => {
     try {
-      const response = await fetch(`http://localhost:5000/api/master/shop/${shopId}/toggle-status`, {
+      const response = await fetch(apiUrl(`/api/master/shop/${shopId}/toggle-status`), {
         method: 'PATCH',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
@@ -82,7 +83,7 @@ const ManageShopsPage = () => {
     }
 
     try {
-      const response = await fetch(`http://localhost:5000/api/master/shop/${shopId}`, {
+      const response = await fetch(apiUrl(`/api/master/shop/${shopId}`), {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`

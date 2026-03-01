@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
-import { ShoppingCart, Check, ArrowLeft, Plus, Minus, CreditCard } from 'lucide-react';
+import { ShoppingCart, FileText, ArrowLeft, Check, Loader2, Info } from 'lucide-react';
+import { apiUrl } from '../../utils/api';
 
 const PublicOrder = () => {
   const location = useLocation();
@@ -91,7 +92,7 @@ const PublicOrder = () => {
         }))
       };
 
-      const response = await fetch('http://localhost:5000/api/order/qr', {
+      const response = await fetch(apiUrl('/api/order/qr'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(orderData),
@@ -121,7 +122,7 @@ const PublicOrder = () => {
       )}
       <h1 className="text-xl font-bold flex-1 text-center">{title}</h1>
       <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
-        <span className="text-sm font-bold">í±¤</span>
+        <span className="text-sm font-bold">ï¿½ï¿½ï¿½</span>
       </div>
     </div>
   );

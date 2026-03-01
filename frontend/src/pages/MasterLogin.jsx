@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Lock } from 'lucide-react';
+import { apiUrl } from '../utils/api';
 
 const MasterLogin = () => {
   const navigate = useNavigate();
@@ -24,7 +25,7 @@ const MasterLogin = () => {
     setLoading(true);
 
     try {
-      const response = await fetch('http://localhost:5000/api/auth/admin/login', {
+      const response = await fetch(apiUrl('/api/auth/admin/login'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

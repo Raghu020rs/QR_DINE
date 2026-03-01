@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { QrCode, Download, Printer, Copy, Check } from 'lucide-react';
+import { APP_BASE } from '../../utils/api';
 
 const QRCode = () => {
   const shopId = localStorage.getItem('shopId') || '69974a06fefa11f4f525a43f';
-  const qrUrl = `http://localhost:5173/shop/${shopId}`;
+  const qrUrl = `${APP_BASE}/shop/${shopId}`;
   const [copied, setCopied] = useState(false);
 
   const handleCopyUrl = () => {
